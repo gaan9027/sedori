@@ -698,36 +698,19 @@ async function analyzeImage(base64, mediaType, apiKey) {
   const suggBox = document.getElementById('ai-suggestion-box');
   const chips   = document.getElementById('suggestion-chips');
 
-  // 写真のblobを作っておく（Web Share API用）
-  try {
-    const bin = atob(base64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    window._imgBlob = new Blob([arr], { type: mediaType });
-  } catch(e) { window._imgBlob = null; }
-
   chips.innerHTML = `
-    <button onclick="openLensShare()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--primary);color:white;border:none;border-radius:12px;padding:13px 16px;font-weight:700;font-size:0.95rem;cursor:pointer;">
+    <button onclick="openGoogleLens()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--primary);color:white;border:none;border-radius:12px;padding:13px 16px;font-weight:700;font-size:0.95rem;cursor:pointer;">
       🔍 Googleレンズで商品名を調べる
     </button>
-    <div style="font-size:0.72rem;color:var(--text-sub);margin-top:6px;text-align:center;">タップすると写真をGoogleレンズに共有できます</div>
+    <div style="font-size:0.72rem;color:var(--text-sub);margin-top:6px;text-align:center;">タップ → 写真を選ぶ の2ステップで商品名がわかります</div>
   `;
   suggBox.style.display = 'block';
 }
 
-async function openLensShare() {
-  // Web Share API で画像をそのまま共有 → GoogleレンズをiOS共有シートから選べる
-  if (window._imgBlob && navigator.canShare) {
-    const file = new File([window._imgBlob], 'product.jpg', { type: window._imgBlob.type });
-    if (navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: '商品を検索' });
-        return;
-      } catch(e) { /* キャンセル or 非対応 */ }
-    }
-  }
-  // フォールバック：ブラウザでlens.google.comを開く
-  window.open('https://lens.google.com/', '_blank');
+function openGoogleLens() {
+  // lens.google.com はiOSユニバーサルリンクのため
+  // Googleアプリがインストール済みなら直接Lensが開く
+  window.location.href = 'https://lens.google.com/';
 }
 
 function selectChip(el, text) {
