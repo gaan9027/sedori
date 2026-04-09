@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="せどりシミュ">
+<meta name="theme-color" content="#6366f1">
+<title>せどり利益シミュレーター</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #eef2ff;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --text: #1e293b;
+    --text-sub: #64748b;
+    --border: #e2e8f0;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --radius: 16px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.08);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── ヘッダー ── */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--primary);
+    color: white;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.4);
+  }
+  .header-icon { font-size: 1.4rem; }
+  .header-title { font-size: 1.05rem; font-weight: 700; flex: 1; }
+  .header-sub { font-size: 0.72rem; opacity: 0.85; }
+  .header-btn {
+    background: rgba(255,255,255,0.18);
+    border: none; border-radius: 10px;
+    color: white; font-size: 1.2rem;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .header-btn:active { background: rgba(255,255,255,0.3); }
+
+  /* ── ステップバー ── */
+  .step-bar {
+    background: white; padding: 12px 20px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+  }
+  .step-item { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; cursor: pointer; }
+  .step-item:not(:last-child)::after {
+    content: ''; position: absolute; top: 13px; left: 50%; width: 100%; height: 2px;
+    background: var(--border); z-index: 0;
+  }
+  .step-item.done:not(:last-child)::after { background: var(--primary); }
+  .step-circle {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--border); color: var(--text-sub);
+    font-size: 0.75rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1; transition: all 0.3s; position: relative;
+  }
+  .step-item.active .step-circle { background: var(--primary); color: white; box-shadow: 0 0 0 4px var(--primary-light); }
+  .step-item.done .step-circle { background: var(--primary); color: white; }
+  .step-label { font-size: 0.68rem; color: var(--text-sub); margin-top: 4px; white-space: nowrap; }
+  .step-item.active .step-label { color: var(--primary); font-weight: 700; }
+
+  /* ── コンテンツ ── */
+  .content {
+    padding: 16px;
+    padding-bottom: calc(80px + var(--safe-bottom));
+    max-width: 480px; margin: 0 auto;
+  }
+
+  /* ── カード ── */
+  .card { background: var(--card); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .card-title { font-size: 0.82rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── 画像アップロード ── */
+  .img-upload-area {
+    border: 2px dashed var(--border); border-radius: 12px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--bg); position: relative; overflow: hidden;
+  }
+  .img-upload-area.has-image { border: none; }
+  .img-upload-area:active { border-color: var(--primary); background: var(--primary-light); }
+  .img-placeholder { color: var(--text-sub); font-size: 0.85rem; padding: 24px 20px; }
+  .img-placeholder .img-icon { font-size: 2.5rem; margin-bottom: 6px; }
+  .img-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; display: none; }
+  .img-preview.show { display: block; }
+
+  /* ── AI解析バッジ ── */
+  .ai-overlay {
+    position: absolute; inset: 0;
+    background: rgba(99,102,241,0.85);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 10px; border-radius: 10px;
+    color: white; font-weight: 700; font-size: 0.95rem;
+  }
+  .ai-overlay.show { display: flex; }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── AI候補チップ ── */
+  .ai-suggestion-box { margin-top: 10px; }
+  .ai-label { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .suggestion-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--primary-light); color: var(--primary);
+    border: 1.5px solid var(--primary); border-radius: 30px;
+    padding: 6px 14px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px;
+  }
+  .chip:active { background: var(--primary); color: white; transform: scale(0.96); }
+  .chip.selected { background: var(--primary); color: white; }
+
+  /* ── APIキー未設定バナー ── */
+  .api-setup-banner {
+    background: #fffbeb; border: 1.5px solid #fbbf24;
+    border-radius: 12px; padding: 12px 14px; margin-top: 10px;
+    font-size: 0.82rem; display: flex; align-items: flex-start; gap: 8px;
+  }
+  .api-setup-banner .setup-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .api-setup-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--warning); color: white; border: none; border-radius: 8px;
+    padding: 6px 12px; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    margin-top: 6px; font-family: inherit;
+  }
+
+  /* ── フォーム ── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 0.82rem; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 13px 16px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-size: 1rem; font-family: inherit; color: var(--text);
+    background: var(--bg); transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); background: white; }
+  .form-input::placeholder { color: #cbd5e0; }
+  .form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+  .form-select optgroup { font-weight: 600; color: var(--text-sub); font-size: 0.82rem; }
+  .form-select option  { font-weight: 500; color: var(--text); font-size: 0.95rem; }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── ボタン ── */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 15px; border: none; border-radius: 14px;
+    font-size: 1rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+  .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+  .btn-ghost { background: var(--bg); color: var(--text-sub); }
+  .btn-sm { padding: 10px 14px; font-size: 0.88rem; border-radius: 10px; width: auto; }
+
+  /* ── プラットフォームブロック ── */
+  .platform-block { border: 1.5px solid var(--border); border-radius: 14px; margin-bottom: 12px; overflow: hidden; transition: border-color 0.2s; }
+  .platform-block.filled { border-color: var(--primary); }
+  .platform-head { display: flex; align-items: center; padding: 14px 16px; gap: 10px; background: white; }
+  .platform-logo { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+  .logo-mercari { background: #fff0f0; }
+  .logo-yahoo   { background: #fff0f0; }
+  .logo-paypay  { background: #fff4ee; }
+  .platform-name { font-weight: 700; font-size: 0.95rem; flex: 1; }
+  .platform-fee { font-size: 0.72rem; color: var(--text-sub); background: var(--bg); padding: 3px 8px; border-radius: 20px; }
+  .platform-body { padding: 0 14px 14px; background: white; }
+  .search-btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search-link-btn {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 9px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; flex: 1; transition: all 0.2s; border: 1.5px solid;
+  }
+  .search-link-btn:active { transform: scale(0.96); }
+  .link-sold   { background: #fff0f0; color: #dc2626; border-color: #fca5a5; }
+  .link-active { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+  .price-input-row { display: flex; align-items: center; gap: 8px; }
+  .price-input-row .form-input { flex: 1; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+  .yen-symbol { font-size: 1.1rem; font-weight: 700; color: var(--text-sub); flex-shrink: 0; }
+  .price-filled-badge { display: none; font-size: 0.75rem; color: var(--primary); font-weight: 600; margin-top: 4px; }
+  .platform-block.filled .price-filled-badge { display: block; }
+
+  /* ── 結果 ── */
+  .best-banner {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white; border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.4); display: flex; align-items: center; gap: 14px;
+  }
+  .best-banner-icon { font-size: 2.5rem; }
+  .best-banner-text .best-title { font-size: 0.8rem; opacity: 0.85; }
+  .best-banner-text .best-val   { font-size: 1.6rem; font-weight: 800; }
+  .best-banner-text .best-sub   { font-size: 0.82rem; opacity: 0.85; }
+  .result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .result-logo { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+  .result-platform-name { font-weight: 700; font-size: 1rem; }
+  .result-fee-note { font-size: 0.75rem; color: var(--text-sub); }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .result-cell { background: var(--bg); border-radius: 12px; padding: 12px; }
+  .result-cell-label { font-size: 0.72rem; color: var(--text-sub); margin-bottom: 4px; }
+  .result-cell-value { font-size: 1.1rem; font-weight: 700; }
+  .val-profit-pos { color: var(--success); }
+  .val-profit-neg { color: var(--danger); }
+  .val-profit-zero { color: var(--warning); }
+  .verdict-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 30px; font-size: 0.88rem; font-weight: 700;
+    width: 100%; justify-content: center;
+  }
+  .verdict-ok   { background: #dcfce7; color: #166534; }
+  .verdict-ng   { background: #fee2e2; color: #991b1b; }
+  .verdict-warn { background: #fef9c3; color: #854d0e; }
+
+  /* ── ボトムナビ ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; border-top: 1px solid var(--border);
+    padding: 12px 16px; padding-bottom: calc(12px + var(--safe-bottom));
+    display: flex; gap: 10px; z-index: 100;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    max-width: 480px; margin: 0 auto;
+  }
+
+  /* ── モーダル ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 200; display: none; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; border-radius: 24px 24px 0 0;
+    padding: 20px 20px calc(20px + var(--safe-bottom));
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.3s ease both;
+  }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .modal-desc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px; line-height: 1.6; }
+  .modal-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .modal-step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--primary); color: white;
+    font-size: 0.72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+  }
+  .modal-step-text { font-size: 0.85rem; line-height: 1.5; }
+  .modal-step-text a { color: var(--primary); font-weight: 600; }
+  .modal-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .api-key-input-wrap { position: relative; }
+  .api-key-input-wrap .form-input { padding-right: 50px; font-family: monospace; font-size: 0.9rem; }
+  .toggle-eye {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-sub);
+  }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+  /* ── ページ ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── ユーティリティ ── */
+  .text-sm { font-size: 0.82rem; }
+  .text-sub { color: var(--text-sub); }
+  .mt-8 { margin-top: 8px; }
+  .mb-0 { margin-bottom: 0; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .card, .platform-block, .best-banner { animation: slideUp 0.3s ease both; }
+
+  @media (prefers-color-scheme: dark) {
+    :root { --text: #f1f5f9; --text-sub: #94a3b8; --border: #334155; --bg: #0f172a; --card: #1e293b; }
+    .form-input { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+    .form-input:focus { background: #1e293b; }
+    .platform-head, .platform-body { background: #1e293b; }
+    .result-cell { background: #0f172a; }
+    .modal { background: #1e293b; }
+    .step-bar, .bottom-nav { background: #1e293b; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+  <span class="header-icon">💰</span>
+  <div style="flex:1">
+    <div class="header-title">せどり利益シミュレーター</div>
+    <div class="header-sub">メルカリ・ヤフオク・ヤフーフリマ 対応</div>
+  </div>
+  <button class="header-btn" onclick="openApiModal()" title="AI設定">⚙️</button>
+</div>
+
+<!-- ステップバー -->
+<div class="step-bar">
+  <div class="step-item active" id="step-1" onclick="goStep(1)">
+    <div class="step-circle">1</div>
+    <div class="step-label">商品情報</div>
+  </div>
+  <div class="step-item" id="step-2" onclick="goStep(2)">
+    <div class="step-circle">2</div>
+    <div class="step-label">相場入力</div>
+  </div>
+  <div class="step-item" id="step-3" onclick="goStep(3)">
+    <div class="step-circle">3</div>
+    <div class="step-label">利益結果</div>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 1: 商品情報 ════════════════ -->
+<div class="page active" id="page-1">
+  <div class="content">
+
+    <!-- 画像 -->
+    <div class="card">
+      <div class="card-title">📷 商品画像</div>
+
+      <div class="img-upload-area" id="img-upload-area" style="position:relative;">
+        <input type="file" id="img-input" accept="image/*" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;">
+        <img class="img-preview" id="img-preview" src="" alt="商品画像">
+        <div class="ai-overlay" id="ai-overlay">
+          <div class="spinner"></div>
+          <div>AI が商品名を認識中...</div>
+        </div>
+        <div class="img-placeholder" id="img-placeholder">
+          <div class="img-icon">📦</div>
+          <div style="font-weight:600;">カメラで撮影 or 画像を選択</div>
+          <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">タップして追加 • AIが商品名を自動認識</div>
+        </div>
+      </div>
+
+      <div id="img-actions" style="display:none;margin-top:10px;display:none;">
+        <button class="btn btn-ghost btn-sm" onclick="clearImage()">🗑️ 画像を削除</button>
+      </div>
+
+      <!-- AI認識結果チップ -->
+      <div class="ai-suggestion-box" id="ai-suggestion-box" style="display:none;">
+        <div class="ai-label">✨ AIが認識した商品名（タップで入力）</div>
+        <div class="suggestion-chips" id="suggestion-chips"></div>
+      </div>
+
+      <!-- APIキー未設定バナー -->
+      <div class="api-setup-banner" id="api-setup-banner" style="display:none;">
+        <span class="setup-icon">🤖</span>
+        <div>
+          <div style="font-weight:600;margin-bottom:2px;">AI自動認識を使うには</div>
+          <div style="color:var(--text-sub);">Claude APIキーを設定すると、写真から商品名を自動入力できます。</div>
+          <button class="api-setup-btn" onclick="openApiModal()">⚙️ APIキーを設定する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- キーワード・価格 -->
+    <div class="card">
+      <div class="card-title">🔍 商品情報</div>
+      <div class="form-group">
+        <label class="form-label">商品名・検索キーワード <span style="color:#ef4444">*</span></label>
+        <input type="text" class="form-input" id="keyword" placeholder="例：Nintendo Switch OLED ホワイト" inputmode="search">
+      </div>
+      <div class="input-row">
+        <div class="form-group mb-0">
+          <label class="form-label">仕入れ値（円）</label>
+          <input type="number" class="form-input" id="purchase-price" placeholder="3000" inputmode="numeric" min="0">
+          <div id="price-hint" style="display:none;font-size:0.78rem;color:#6366f1;margin-top:4px;"></div>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">📦 送料</label>
+          <select class="form-input form-select" id="shipping-select" onchange="onShippingSelect()">
+            <option value="0" data-custom="false">送料なし（0円）</option>
+            <optgroup label="─── らくらくメルカリ便（ヤマト）───">
+              <option value="210">ネコポス　¥210</option>
+              <option value="450">宅急便コンパクト　¥450</option>
+              <option value="750">60サイズ（〜2kg）　¥750</option>
+              <option value="850">80サイズ（〜5kg）　¥850</option>
+              <option value="1050">100サイズ（〜10kg）　¥1,050</option>
+              <option value="1200">120サイズ（〜15kg）　¥1,200</option>
+              <option value="1450">140サイズ（〜20kg）　¥1,450</option>
+              <option value="1700">160サイズ（〜25kg）　¥1,700</option>
+            </optgroup>
+            <optgroup label="─── ゆうゆうメルカリ便（郵便）───">
+              <option value="215">ゆうパケットポスト　¥215</option>
+              <option value="230">ゆうパケット　¥230</option>
+              <option value="770">ゆうパック 60サイズ　¥770</option>
+              <option value="870">ゆうパック 80サイズ　¥870</option>
+              <option value="1070">ゆうパック 100サイズ　¥1,070</option>
+            </optgroup>
+            <optgroup label="─── たのメル便（大型・三辺合計）───">
+              <option value="1700">80サイズ（〜80cm）　¥1,700</option>
+              <option value="2400">120サイズ（〜120cm）　¥2,400</option>
+              <option value="3400">160サイズ（〜160cm）　¥3,400</option>
+              <option value="5000">200サイズ（〜200cm）　¥5,000</option>
+              <option value="8600">250サイズ（〜250cm）　¥8,600</option>
+              <option value="12000">300サイズ（〜300cm）　¥12,000</option>
+              <option value="18500">350サイズ（〜350cm）　¥18,500</option>
+              <option value="25400">400サイズ（〜400cm）　¥25,400</option>
+              <option value="33000">450サイズ（〜450cm）　¥33,000</option>
+            </optgroup>
+            <optgroup label="─── その他 ───">
+              <option value="custom">手入力する</option>
+            </optgroup>
+          </select>
+          <div id="shipping-custom-wrap" style="display:none; margin-top:8px;">
+            <input type="number" class="form-input" id="shipping-cost-custom" placeholder="送料を入力（円）" inputmode="numeric" min="0">
+          </div>
+          <div id="shipping-cost-display" style="display:none; margin-top:6px; font-size:0.8rem; color:var(--primary); font-weight:600;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 手数料 -->
+    <div class="card">
+      <div class="card-title">⚙️ 手数料設定（変更可）</div>
+      <div class="input-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="form-group mb-0">
+          <label class="form-label" style="font-size:0.72rem;">メルカリ</label>
+          <input type="number" class="form-input" id="fee-mercari" value="10" min="0" max="100" step="0.1" inputmode="decimal" style="text-align:center;">
+          <div style="font-size:0.7rem;text-align:center;color:var(--text-sub);margin-top:2px;">%</div>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label" style="font-size:0.72rem;">ヤフオク</label>
+          <input type="number" class="form-input" id="fee-yahoo" value="8.8" min="0" max="100" step="0.1" inputmode="decimal" style="text-align:center;">
+          <div style="font-size:0.7rem;text-align:center;color:var(--text-sub);margin-top:2px;">%</div>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label" style="font-size:0.72rem;">ヤフーフリマ</label>
+          <input type="number" class="form-input" id="fee-paypay" value="5" min="0" max="100" step="0.1" inputmode="decimal" style="text-align:center;">
+          <div style="font-size:0.7rem;text-align:center;color:var(--text-sub);margin-top:2px;">%</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="bottom-nav">
+    <button class="btn btn-primary" onclick="goToStep2()">次へ：相場をリサーチ →</button>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 2: 相場入力 ════════════════ -->
+<div class="page" id="page-2">
+  <div class="content">
+    <div class="card" style="border:2px solid var(--primary);">
+      <div class="card-title" style="color:var(--primary);">💡 使い方</div>
+      <div class="text-sm text-sub">各ボタンをタップして、<strong style="color:var(--text);">売り切れ商品の平均価格</strong>を確認し、入力欄に入力してください。</div>
+    </div>
+
+    <!-- メルカリ -->
+    <div class="platform-block" id="block-mercari">
+      <div class="platform-head">
+        <div class="platform-logo logo-mercari">🛍️</div>
+        <div class="platform-name">メルカリ</div>
+        <div class="platform-fee" id="badge-mercari">手数料 10%</div>
+      </div>
+      <div class="platform-body">
+        <div class="search-btn-row">
+          <a class="search-link-btn link-sold"   id="link-mercari-sold"   href="#" target="_blank">🔴 売り切れを検索</a>
+          <a class="search-link-btn link-active" id="link-mercari-active" href="#" target="_blank">🟢 出品中を確認</a>
+        </div>
+        <div class="price-input-row">
+          <span class="yen-symbol">¥</span>
+          <input type="number" class="form-input" id="price-mercari" placeholder="平均価格を入力" inputmode="numeric" min="0" oninput="onPriceInput('mercari')">
+        </div>
+        <div class="price-filled-badge" id="filled-mercari">✅ 入力済み</div>
+      </div>
+    </div>
+
+    <!-- ヤフオク -->
+    <div class="platform-block" id="block-yahoo">
+      <div class="platform-head">
+        <div class="platform-logo logo-yahoo">🔨</div>
+        <div class="platform-name">ヤフオク</div>
+        <div class="platform-fee" id="badge-yahoo">手数料 8.8%</div>
+      </div>
+      <div class="platform-body">
+        <div class="search-btn-row">
+          <a class="search-link-btn link-sold"   id="link-yahoo-sold"   href="#" target="_blank">🔴 落札済みを検索</a>
+          <a class="search-link-btn link-active" id="link-yahoo-active" href="#" target="_blank">🟢 出品中を確認</a>
+        </div>
+        <div class="price-input-row">
+          <span class="yen-symbol">¥</span>
+          <input type="number" class="form-input" id="price-yahoo" placeholder="平均価格を入力" inputmode="numeric" min="0" oninput="onPriceInput('yahoo')">
+        </div>
+        <div class="price-filled-badge" id="filled-yahoo">✅ 入力済み</div>
+      </div>
+    </div>
+
+    <!-- ヤフーフリマ -->
+    <div class="platform-block" id="block-paypay">
+      <div class="platform-head">
+        <div class="platform-logo logo-paypay">🏪</div>
+        <div class="platform-name">ヤフーフリマ</div>
+        <div class="platform-fee" id="badge-paypay">手数料 5%</div>
+      </div>
+      <div class="platform-body">
+        <div class="search-btn-row">
+          <a class="search-link-btn link-sold"   id="link-paypay-sold"   href="#" target="_blank">🔴 売り切れを検索</a>
+          <a class="search-link-btn link-active" id="link-paypay-active" href="#" target="_blank">🟢 出品中を確認</a>
+        </div>
+        <div class="price-input-row">
+          <span class="yen-symbol">¥</span>
+          <input type="number" class="form-input" id="price-paypay" placeholder="平均価格を入力" inputmode="numeric" min="0" oninput="onPriceInput('paypay')">
+        </div>
+        <div class="price-filled-badge" id="filled-paypay">✅ 入力済み</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="btn btn-ghost" style="flex:0 0 auto;width:auto;padding:14px 20px;" onclick="goStep(1)">← 戻る</button>
+    <button class="btn btn-primary" onclick="goToStep3()">利益を計算する →</button>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 3: 結果 ════════════════ -->
+<div class="page" id="page-3">
+  <div class="content" id="results-content"></div>
+  <div class="bottom-nav">
+    <button class="btn btn-ghost" style="flex:0 0 auto;width:auto;padding:14px 20px;" onclick="goStep(2)">← 戻る</button>
+    <button class="btn btn-outline" onclick="resetAll()">🔄 最初からやり直す</button>
+  </div>
+</div>
+
+<!-- ════════════════ API設定モーダル ════════════════ -->
+<div class="modal-overlay" id="api-modal" onclick="closeApiModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🤖 AI画像認識の設定</div>
+    <div class="modal-desc">Claude APIキーを設定すると、商品写真を撮るだけで商品名を自動入力できます。キーはこのアプリ内にのみ保存されます。</div>
+
+    <div class="modal-step">
+      <div class="modal-step-num">1</div>
+      <div class="modal-step-text">
+        <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> にアクセスしてアカウントを作成（無料）
+      </div>
+    </div>
+    <div class="modal-step">
+      <div class="modal-step-num">2</div>
+      <div class="modal-step-text">「API Keys」→「Create Key」でキーを発行（sk-ant- から始まる文字列）</div>
+    </div>
+    <div class="modal-step">
+      <div class="modal-step-num">3</div>
+      <div class="modal-step-text">下の欄に貼り付けて保存</div>
+    </div>
+
+    <hr class="modal-divider">
+
+    <label class="form-label">APIキー</label>
+    <div class="api-key-input-wrap">
+      <input type="password" class="form-input" id="api-key-input" placeholder="sk-ant-api03-xxxxxxxx...">
+      <button class="toggle-eye" onclick="toggleApiKeyVisibility()">👁</button>
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-sub);margin-top:6px;">
+      ⚠️ このキーはお使いの端末にのみ保存されます。外部には送信されません（Claude APIへの通信のみに使用）。
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="closeApiModal()">キャンセル</button>
+      <button class="btn btn-primary btn-sm" style="flex:2;" onclick="saveApiKey()">💾 保存する</button>
+    </div>
+
+    <div id="api-key-status" style="margin-top:10px;font-size:0.82rem;text-align:center;"></div>
+
+    <!-- 保存済みキーがある場合の削除ボタン -->
+    <div id="api-key-clear-row" style="display:none;margin-top:8px;text-align:center;">
+      <button class="btn btn-ghost btn-sm" style="width:auto;color:var(--danger);" onclick="clearApiKey()">🗑️ 設定済みキーを削除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────
+// 状態
+// ────────────────────────────────────────────
+let currentStep = 1;
+let currentImageBase64 = null;  // 解析用 base64（jpeg）
+
+// ────────────────────────────────────────────
+// ステップ移動
+// ────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + n).classList.add('active');
+  document.querySelectorAll('.step-item').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i + 1 < n) el.classList.add('done');
+    if (i + 1 === n) el.classList.add('active');
+  });
+  currentStep = n;
+  window.scrollTo(0, 0);
+}
+
+function goToStep2() {
+  const kw = document.getElementById('keyword').value.trim();
+  if (!kw) { alert('商品名・キーワードを入力してください'); document.getElementById('keyword').focus(); return; }
+  updateSearchLinks(kw);
+  updateFeeBadges();
+  goStep(2);
+}
+
+function goToStep3() {
+  const p = { mercari: +document.getElementById('price-mercari').value || 0, yahoo: +document.getElementById('price-yahoo').value || 0, paypay: +document.getElementById('price-paypay').value || 0 };
+  if (!p.mercari && !p.yahoo && !p.paypay) { alert('少なくとも1つのプラットフォームの価格を入力してください'); return; }
+  renderResults(p);
+  goStep(3);
+}
+
+// ────────────────────────────────────────────
+// 検索リンク
+// ────────────────────────────────────────────
+function updateSearchLinks(kw) {
+  const enc = encodeURIComponent(kw);
+  document.getElementById('link-mercari-sold').href   = `https://jp.mercari.com/search?keyword=${enc}&status=sold_out`;
+  document.getElementById('link-mercari-active').href = `https://jp.mercari.com/search?keyword=${enc}&status=on_sale`;
+  document.getElementById('link-yahoo-sold').href     = `https://auctions.yahoo.co.jp/search/search?p=${enc}&va=${enc}&b=1&n=20&s1=end&o1=d&mode=2`;
+  document.getElementById('link-yahoo-active').href   = `https://auctions.yahoo.co.jp/search/search?p=${enc}&va=${enc}&b=1&n=20`;
+  document.getElementById('link-paypay-sold').href    = `https://paypayfleamarket.yahoo.co.jp/search/${enc}?sold=true`;
+  document.getElementById('link-paypay-active').href  = `https://paypayfleamarket.yahoo.co.jp/search/${enc}`;
+}
+
+function updateFeeBadges() {
+  document.getElementById('badge-mercari').textContent = `手数料 ${document.getElementById('fee-mercari').value}%`;
+  document.getElementById('badge-yahoo').textContent   = `手数料 ${document.getElementById('fee-yahoo').value}%`;
+  document.getElementById('badge-paypay').textContent  = `手数料 ${document.getElementById('fee-paypay').value}%`;
+}
+
+function onPriceInput(p) {
+  const val = +document.getElementById('price-' + p).value;
+  document.getElementById('block-' + p).classList.toggle('filled', val > 0);
+}
+
+// ────────────────────────────────────────────
+// 画像処理 + AI解析
+// ────────────────────────────────────────────
+function handleImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const dataUrl = e.target.result;
+    const preview = document.getElementById('img-preview');
+    const placeholder = document.getElementById('img-placeholder');
+    const area = document.getElementById('img-upload-area');
+    const actions = document.getElementById('img-actions');
+
+    preview.src = dataUrl;
+    preview.classList.add('show');
+    placeholder.style.display = 'none';
+    area.classList.add('has-image');
+    actions.style.display = 'block';
+
+    // base64 抽出（"data:image/jpeg;base64," の後ろ）
+    const parts = dataUrl.split(',');
+    currentImageBase64 = parts[1];
+    const mediaType = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+
+    // APIバナーは非表示（API不要）
+    document.getElementById('api-setup-banner').style.display = 'none';
+
+    // Googleレンズ＋カテゴリチップを表示
+    await analyzeImage(currentImageBase64, mediaType, null);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeImage(base64, mediaType, apiKey) {
+  const suggBox = document.getElementById('ai-suggestion-box');
+  const chips   = document.getElementById('suggestion-chips');
+
+  // 写真のblobを作っておく（Web Share API用）
+  try {
+    const bin = atob(base64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    window._imgBlob = new Blob([arr], { type: mediaType });
+  } catch(e) { window._imgBlob = null; }
+
+  chips.innerHTML = `
+    <button onclick="openLensShare()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--primary);color:white;border:none;border-radius:12px;padding:13px 16px;font-weight:700;font-size:0.95rem;cursor:pointer;">
+      🔍 Googleレンズで商品名を調べる
+    </button>
+    <div style="font-size:0.72rem;color:var(--text-sub);margin-top:6px;text-align:center;">タップすると写真をGoogleレンズに共有できます</div>
+  `;
+  suggBox.style.display = 'block';
+}
+
+async function openLensShare() {
+  // Web Share API で画像をそのまま共有 → GoogleレンズをiOS共有シートから選べる
+  if (window._imgBlob && navigator.canShare) {
+    const file = new File([window._imgBlob], 'product.jpg', { type: window._imgBlob.type });
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: '商品を検索' });
+        return;
+      } catch(e) { /* キャンセル or 非対応 */ }
+    }
+  }
+  // フォールバック：ブラウザでlens.google.comを開く
+  window.open('https://lens.google.com/', '_blank');
+}
+
+function selectChip(el, text) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('keyword').value = text;
+  document.getElementById('keyword').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  showPriceLinks(text);
+}
+
+function showPriceLinks(productName) {
+  const priceHint = document.getElementById('price-hint');
+  if (!priceHint) return;
+  const enc = encodeURIComponent(productName);
+  const mercariSold   = `https://jp.mercari.com/search?keyword=${enc}&status=sold_out`;
+  const mercariActive = `https://jp.mercari.com/search?keyword=${enc}&status=on_sale`;
+  const yahooSold     = `https://auctions.yahoo.co.jp/search/search?p=${enc}&va=${enc}&b=1&n=20&s1=end&o1=d&mode=2`;
+  priceHint.innerHTML = `
+    <div style="font-size:0.78rem;color:var(--text-sub);margin-bottom:6px;">📊 相場を確認する（タップで開く）：</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      <a href="${mercariSold}" target="_blank" style="display:inline-block;background:#ff4f52;color:white;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:600;text-decoration:none;">🛒 メルカリ 売れた価格</a>
+      <a href="${mercariActive}" target="_blank" style="display:inline-block;background:#ff4f52;color:white;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:600;text-decoration:none;opacity:0.75;">📋 メルカリ 出品中</a>
+      <a href="${yahooSold}" target="_blank" style="display:inline-block;background:#ff0033;color:white;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:600;text-decoration:none;">🏷️ ヤフオク 落札相場</a>
+    </div>
+    <div style="font-size:0.7rem;color:var(--text-sub);margin-top:5px;">相場を確認して下の仕入れ金額を入力してください</div>
+  `;
+  priceHint.style.display = 'block';
+}
+
+function clearImage() {
+  const preview = document.getElementById('img-preview');
+  const placeholder = document.getElementById('img-placeholder');
+  const area = document.getElementById('img-upload-area');
+  const actions = document.getElementById('img-actions');
+  const suggBox = document.getElementById('ai-suggestion-box');
+  const banner = document.getElementById('api-setup-banner');
+  preview.classList.remove('show');
+  placeholder.style.display = 'block';
+  area.classList.remove('has-image');
+  actions.style.display = 'none';
+  suggBox.style.display = 'none';
+  banner.style.display = 'none';
+  document.getElementById('img-input').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  currentImageBase64 = null;
+}
+
+// ────────────────────────────────────────────
+// APIキー管理
+// ────────────────────────────────────────────
+function openApiModal() {
+  const modal = document.getElementById('api-modal');
+  const input = document.getElementById('api-key-input');
+  const status = document.getElementById('api-key-status');
+  const clearRow = document.getElementById('api-key-clear-row');
+  const existing = localStorage.getItem('claude_api_key');
+
+  input.value = existing || '';
+  status.textContent = '';
+  clearRow.style.display = existing ? 'block' : 'none';
+  if (existing) status.innerHTML = '<span style="color:var(--success);">✅ APIキー設定済み</span>';
+
+  modal.classList.add('show');
+}
+
+function closeApiModal(e) {
+  if (!e || e.target === document.getElementById('api-modal')) {
+    document.getElementById('api-modal').classList.remove('show');
+  }
+}
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const status = document.getElementById('api-key-status');
+
+  if (!key) { status.innerHTML = '<span style="color:var(--danger);">❌ キーを入力してください</span>'; return; }
+  if (!key.startsWith('sk-ant-')) { status.innerHTML = '<span style="color:var(--danger);">❌ 正しいAPIキーを入力してください（sk-ant-で始まります）</span>'; return; }
+
+  localStorage.setItem('claude_api_key', key);
+  status.innerHTML = '<span style="color:var(--success);">✅ 保存しました！</span>';
+  document.getElementById('api-key-clear-row').style.display = 'block';
+  document.getElementById('api-setup-banner').style.display = 'none';
+
+  setTimeout(() => document.getElementById('api-modal').classList.remove('show'), 1200);
+
+  // 画像が既にある場合は再解析
+  if (currentImageBase64) {
+    const mediaType = document.getElementById('img-preview').src.match(/data:(.*?);/)?.[1] || 'image/jpeg';
+    analyzeImage(currentImageBase64, mediaType, key);
+  }
+}
+
+function clearApiKey() {
+  if (!confirm('APIキーを削除しますか？')) return;
+  localStorage.removeItem('claude_api_key');
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('api-key-status').innerHTML = '<span style="color:var(--text-sub);">削除しました</span>';
+  document.getElementById('api-key-clear-row').style.display = 'none';
+}
+
+function toggleApiKeyVisibility() {
+  const inp = document.getElementById('api-key-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ────────────────────────────────────────────
+// 送料プルダウン
+// ────────────────────────────────────────────
+function onShippingSelect() {
+  const sel = document.getElementById('shipping-select');
+  const customWrap = document.getElementById('shipping-custom-wrap');
+  const display    = document.getElementById('shipping-cost-display');
+  const val = sel.value;
+
+  if (val === 'custom') {
+    customWrap.style.display = 'block';
+    display.style.display = 'none';
+    document.getElementById('shipping-cost-custom').focus();
+  } else {
+    customWrap.style.display = 'none';
+    const cost = +val;
+    if (cost > 0) {
+      display.style.display = 'block';
+      display.textContent = `送料：¥${cost.toLocaleString('ja-JP')} が反映されます`;
+    } else {
+      display.style.display = 'none';
+    }
+  }
+}
+
+function getShippingCost() {
+  const sel = document.getElementById('shipping-select');
+  if (sel.value === 'custom') {
+    return +document.getElementById('shipping-cost-custom').value || 0;
+  }
+  return +sel.value || 0;
+}
+
+// ────────────────────────────────────────────
+// 利益計算・結果表示
+// ────────────────────────────────────────────
+function renderResults(prices) {
+  const purchasePrice = +document.getElementById('purchase-price').value || 0;
+  const shippingCost  = getShippingCost();
+  const totalCost = purchasePrice + shippingCost;
+
+  const fees = {
+    mercari: (+document.getElementById('fee-mercari').value || 10) / 100,
+    yahoo:   (+document.getElementById('fee-yahoo').value   || 8.8) / 100,
+    paypay:  (+document.getElementById('fee-paypay').value  || 5)   / 100,
+  };
+
+  const platforms = [
+    { key:'mercari', name:'メルカリ',     icon:'🛍️', bg:'#fff0f0' },
+    { key:'yahoo',   name:'ヤフオク',     icon:'🔨', bg:'#fff0f0' },
+    { key:'paypay',  name:'ヤフーフリマ', icon:'🏪', bg:'#fff4ee' },
+  ];
+
+  const results = platforms.filter(p => prices[p.key] > 0).map(p => {
+    const sell   = prices[p.key];
+    const fee    = Math.round(sell * fees[p.key]);
+    const profit = sell - fee - totalCost;
+    const margin = sell > 0 ? profit / sell * 100 : 0;
+    const roi    = totalCost > 0 ? profit / totalCost * 100 : 0;
+    return { ...p, sell, fee, profit, margin, roi };
+  });
+
+  const best = results.reduce((a, b) => a.profit > b.profit ? a : b, results[0]);
+  let html = '';
+
+  if (best && best.profit > 0) {
+    html += `<div class="best-banner"><div class="best-banner-icon">🏆</div><div class="best-banner-text"><div class="best-title">最も利益が出るのは</div><div class="best-val">${best.icon} ${best.name}</div><div class="best-sub">利益 ¥${fmt(best.profit)} ／ 利益率 ${best.margin.toFixed(1)}%</div></div></div>`;
+  } else {
+    html += `<div class="card" style="border:2px solid var(--danger);text-align:center;"><div style="font-size:2rem;margin-bottom:8px;">⚠️</div><div style="font-weight:700;color:var(--danger);">全プラットフォームで赤字です</div><div class="text-sm text-sub mt-8">仕入れ値を見直すか別の商品を検討してください</div></div>`;
+  }
+
+  results.forEach((r, i) => {
+    const isBest = results.length > 1 && r.key === best.key;
+    const pc  = r.profit > 0 ? 'val-profit-pos' : r.profit < 0 ? 'val-profit-neg' : 'val-profit-zero';
+    const vc  = r.profit > 0 ? 'verdict-ok' : r.profit < 0 ? 'verdict-ng' : 'verdict-warn';
+    const vt  = r.profit > 0 ? '✅ 利益あり' : r.profit < 0 ? '❌ 赤字' : '⚠️ トントン';
+    html += `
+    <div class="card" style="animation-delay:${i*0.06}s;${isBest?'border:2px solid var(--primary);':''}">
+      ${isBest?'<div style="font-size:0.72rem;color:var(--primary);font-weight:700;margin-bottom:8px;">⭐ 最もおすすめ</div>':''}
+      <div class="result-header">
+        <div class="result-logo" style="background:${r.bg};">${r.icon}</div>
+        <div><div class="result-platform-name">${r.name}</div><div class="result-fee-note">手数料 ${(fees[r.key]*100).toFixed(1)}%</div></div>
+      </div>
+      <div class="result-grid">
+        <div class="result-cell"><div class="result-cell-label">📈 想定売値</div><div class="result-cell-value">¥${fmt(r.sell)}</div></div>
+        <div class="result-cell"><div class="result-cell-label">💳 手数料</div><div class="result-cell-value" style="color:var(--danger);">¥${fmt(r.fee)}</div></div>
+        <div class="result-cell"><div class="result-cell-label">📦 原価合計</div><div class="result-cell-value">¥${fmt(totalCost)}</div></div>
+        <div class="result-cell"><div class="result-cell-label">📊 ROI</div><div class="result-cell-value ${pc}">${r.roi.toFixed(1)}%</div></div>
+      </div>
+      <div class="result-cell" style="margin-bottom:12px;">
+        <div class="result-cell-label">💹 想定利益 ／ 利益率</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px;">
+          <div style="font-size:1.6rem;font-weight:800;" class="${pc}">¥${fmt(r.profit)}</div>
+          <div style="font-size:1rem;font-weight:700;" class="${pc}">${r.margin.toFixed(1)}%</div>
+        </div>
+      </div>
+      <div class="verdict-badge ${vc}">${vt}</div>
+    </div>`;
+  });
+
+  html += `<div class="card"><div class="card-title">📐 計算内訳</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 4px;color:var(--text-sub);">仕入れ値</td><td style="padding:8px 4px;text-align:right;font-weight:600;">¥${fmt(purchasePrice)}</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 4px;color:var(--text-sub);">送料</td><td style="padding:8px 4px;text-align:right;font-weight:600;">¥${fmt(shippingCost)}</td></tr>
+      <tr><td style="padding:8px 4px;font-weight:700;">原価合計</td><td style="padding:8px 4px;text-align:right;font-weight:700;">¥${fmt(totalCost)}</td></tr>
+    </table>
+  </div>`;
+
+  document.getElementById('results-content').innerHTML = html;
+}
+
+// ────────────────────────────────────────────
+// リセット
+// ────────────────────────────────────────────
+function resetAll() {
+  if (!confirm('入力内容をリセットしますか？')) return;
+  ['keyword','purchase-price','price-mercari','price-yahoo','price-paypay'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('shipping-select').value = '0';
+  document.getElementById('shipping-cost-custom').value = '';
+  document.getElementById('shipping-custom-wrap').style.display = 'none';
+  document.getElementById('shipping-cost-display').style.display = 'none';
+  document.getElementById('fee-mercari').value = '10';
+  document.getElementById('fee-yahoo').value = '8.8';
+  document.getElementById('fee-paypay').value = '5';
+  ['mercari','yahoo','paypay'].forEach(p => document.getElementById('block-'+p).classList.remove('filled'));
+  clearImage();
+  goStep(1);
+}
+
+// ────────────────────────────────────────────
+// ユーティリティ
+// ────────────────────────────────────────────
+function fmt(n) { return Math.round(n).toLocaleString('ja-JP'); }
+
+// ────────────────────────────────────────────
+// 画像input初期化（DOMContentLoaded不要・script要素はHTML要素の後に配置）
+// ────────────────────────────────────────────
+(function initImageInput() {
+  const imgInput = document.getElementById('img-input');
+  if (!imgInput) return;
+  imgInput.addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onerror = function() { alert('画像の読み込みに失敗しました'); };
+    reader.onload = async function(ev) {
+      const dataUrl = ev.target.result;
+      const preview     = document.getElementById('img-preview');
+      const placeholder = document.getElementById('img-placeholder');
+      const area        = document.getElementById('img-upload-area');
+      const actions     = document.getElementById('img-actions');
+
+      // 画像を表示
+      preview.setAttribute('src', dataUrl);
+      preview.style.cssText += ';display:block;';
+      preview.classList.add('show');
+      if (placeholder) placeholder.style.display = 'none';
+      if (area)        area.classList.add('has-image');
+      if (actions)     actions.style.display = 'block';
+
+      // base64取得
+      const parts = dataUrl.split(',');
+      currentImageBase64 = parts[1];
+      const mediaType = (parts[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+
+      // APIバナーは非表示（API不要）
+      const banner = document.getElementById('api-setup-banner');
+      if (banner) banner.style.display = 'none';
+      await analyzeImage(currentImageBase64, mediaType, null);
+    };
+    reader.readAsDataURL(file);
+  });
+}());
+</script>
+</body>
+</html>
