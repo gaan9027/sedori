@@ -48,18 +48,7 @@
   .header-icon { font-size: 1.4rem; }
   .header-title { font-size: 1.05rem; font-weight: 700; flex: 1; }
   .header-sub { font-size: 0.72rem; opacity: 0.85; }
-  .header-btn {
-    background: rgba(255,255,255,0.18);
-    border: none; border-radius: 10px;
-    color: white; font-size: 1.2rem;
-    width: 38px; height: 38px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; flex-shrink: 0;
-    transition: background 0.2s;
-  }
-  .header-btn:active { background: rgba(255,255,255,0.3); }
-
-  /* ── ステップバー ── */
+/* ── ステップバー ── */
   .step-bar {
     background: white; padding: 12px 20px 8px;
     border-bottom: 1px solid var(--border);
@@ -136,21 +125,7 @@
   .chip:active { background: var(--primary); color: white; transform: scale(0.96); }
   .chip.selected { background: var(--primary); color: white; }
 
-  /* ── APIキー未設定バナー ── */
-  .api-setup-banner {
-    background: #fffbeb; border: 1.5px solid #fbbf24;
-    border-radius: 12px; padding: 12px 14px; margin-top: 10px;
-    font-size: 0.82rem; display: flex; align-items: flex-start; gap: 8px;
-  }
-  .api-setup-banner .setup-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-  .api-setup-btn {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--warning); color: white; border: none; border-radius: 8px;
-    padding: 6px 12px; font-size: 0.82rem; font-weight: 700; cursor: pointer;
-    margin-top: 6px; font-family: inherit;
-  }
-
-  /* ── フォーム ── */
+/* ── フォーム ── */
   .form-group { margin-bottom: 14px; }
   .form-label { font-size: 0.82rem; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; display: block; }
   .form-input {
@@ -186,6 +161,8 @@
   .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
   .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
   .btn-ghost { background: var(--bg); color: var(--text-sub); }
+  .btn-sheet { background: #f0fdf4; color: #16a34a; border: 1.5px solid #86efac; font-size:0.88rem; padding:10px 14px; border-radius:10px; width:100%; }
+  .btn-sheet:active { background: #dcfce7; }
   .btn-sm { padding: 10px 14px; font-size: 0.88rem; border-radius: 10px; width: auto; }
 
   /* ── プラットフォームブロック ── */
@@ -269,22 +246,6 @@
   .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
   .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
   .modal-desc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px; line-height: 1.6; }
-  .modal-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
-  .modal-step-num {
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--primary); color: white;
-    font-size: 0.72rem; font-weight: 700;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
-  }
-  .modal-step-text { font-size: 0.85rem; line-height: 1.5; }
-  .modal-step-text a { color: var(--primary); font-weight: 600; }
-  .modal-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-  .api-key-input-wrap { position: relative; }
-  .api-key-input-wrap .form-input { padding-right: 50px; font-family: monospace; font-size: 0.9rem; }
-  .toggle-eye {
-    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-sub);
-  }
   .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 
   /* ── ページ ── */
@@ -321,7 +282,6 @@
     <div class="header-title">せどり利益シミュレーター</div>
     <div class="header-sub">メルカリ・ヤフオク・ヤフーフリマ 対応</div>
   </div>
-  <button class="header-btn" onclick="openApiModal()" title="AI設定">⚙️</button>
 </div>
 
 <!-- ステップバー -->
@@ -372,15 +332,6 @@
         <div class="suggestion-chips" id="suggestion-chips"></div>
       </div>
 
-      <!-- APIキー未設定バナー -->
-      <div class="api-setup-banner" id="api-setup-banner" style="display:none;">
-        <span class="setup-icon">🤖</span>
-        <div>
-          <div style="font-weight:600;margin-bottom:2px;">AI自動認識を使うには</div>
-          <div style="color:var(--text-sub);">Claude APIキーを設定すると、写真から商品名を自動入力できます。</div>
-          <button class="api-setup-btn" onclick="openApiModal()">⚙️ APIキーを設定する</button>
-        </div>
-      </div>
     </div>
 
     <!-- キーワード・価格 -->
@@ -551,52 +502,82 @@
   </div>
 </div>
 
-<!-- ════════════════ API設定モーダル ════════════════ -->
-<div class="modal-overlay" id="api-modal" onclick="closeApiModal(event)">
-  <div class="modal" onclick="event.stopPropagation()">
+<!-- ════════════════ スプレッドシート連携モーダル ════════════════ -->
+<div class="modal-overlay" id="sheets-modal" onclick="closeSheetsModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-height:85vh;overflow-y:auto;">
     <div class="modal-handle"></div>
-    <div class="modal-title">🤖 AI画像認識の設定</div>
-    <div class="modal-desc">Claude APIキーを設定すると、商品写真を撮るだけで商品名を自動入力できます。キーはこのアプリ内にのみ保存されます。</div>
-
-    <div class="modal-step">
-      <div class="modal-step-num">1</div>
-      <div class="modal-step-text">
-        <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> にアクセスしてアカウントを作成（無料）
-      </div>
-    </div>
-    <div class="modal-step">
-      <div class="modal-step-num">2</div>
-      <div class="modal-step-text">「API Keys」→「Create Key」でキーを発行（sk-ant- から始まる文字列）</div>
-    </div>
-    <div class="modal-step">
-      <div class="modal-step-num">3</div>
-      <div class="modal-step-text">下の欄に貼り付けて保存</div>
+    <div class="modal-title">📊 Googleスプレッドシート連携</div>
+    <div style="font-size:0.83rem;color:var(--text-sub);margin-bottom:14px;line-height:1.6;">
+      Googleスプレッドシートに在庫管理表を作り、仕入れ確定のたびに自動追記できます。初回のみ5分ほど設定が必要です。
     </div>
 
-    <hr class="modal-divider">
-
-    <label class="form-label">APIキー</label>
-    <div class="api-key-input-wrap">
-      <input type="password" class="form-input" id="api-key-input" placeholder="sk-ant-api03-xxxxxxxx...">
-      <button class="toggle-eye" onclick="toggleApiKeyVisibility()">👁</button>
-    </div>
-    <div style="font-size:0.75rem;color:var(--text-sub);margin-top:6px;">
-      ⚠️ このキーはお使いの端末にのみ保存されます。外部には送信されません（Claude APIへの通信のみに使用）。
+    <div style="background:var(--primary-light);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;line-height:1.8;">
+      <b>① Googleスプレッドシートを新規作成</b><br>
+      1行目に見出し（日時・商品名・仕入れ値・送料・原価計・出品先・売値・手数料・利益・利益率・ステータス）を入力<br><br>
+      <b>② Apps Scriptを開く</b><br>
+      スプレッドシートのメニュー「拡張機能」→「Apps Script」<br><br>
+      <b>③ 以下のコードを貼り付けて保存</b>
     </div>
 
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="closeApiModal()">キャンセル</button>
-      <button class="btn btn-primary btn-sm" style="flex:2;" onclick="saveApiKey()">💾 保存する</button>
+    <div style="background:#1e293b;border-radius:10px;padding:12px;margin-bottom:12px;position:relative;">
+      <pre style="color:#a5f3fc;font-size:0.7rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;margin:0;">function doPost(e) {
+  var s = SpreadsheetApp
+    .getActiveSpreadsheet()
+    .getActiveSheet();
+  var d = JSON.parse(e.postData.contents);
+  s.appendRow([
+    Utilities.formatDate(
+      new Date(),'Asia/Tokyo',
+      'yyyy/MM/dd HH:mm'),
+    d.keyword,
+    d.purchasePrice,
+    d.shipping,
+    d.totalCost,
+    d.platform,
+    d.sellPrice,
+    d.fee,
+    d.profit,
+    d.margin + '%',
+    '仕入れ済み'
+  ]);
+  return ContentService
+    .createTextOutput('ok');
+}</pre>
+      <button onclick="copyScriptCode()" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.15);border:none;color:white;border-radius:6px;padding:4px 8px;font-size:0.72rem;cursor:pointer;" id="copy-btn">📋 コピー</button>
     </div>
 
-    <div id="api-key-status" style="margin-top:10px;font-size:0.82rem;text-align:center;"></div>
+    <div style="background:var(--primary-light);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;line-height:1.8;">
+      <b>④ ウェブアプリとしてデプロイ</b><br>
+      「デプロイ」→「新しいデプロイ」→種類「ウェブアプリ」→
+      アクセスできるユーザー「全員」→「デプロイ」<br><br>
+      <b>⑤ 表示されたURLをコピーして下に貼り付け</b>
+    </div>
 
-    <!-- 保存済みキーがある場合の削除ボタン -->
-    <div id="api-key-clear-row" style="display:none;margin-top:8px;text-align:center;">
-      <button class="btn btn-ghost btn-sm" style="width:auto;color:var(--danger);" onclick="clearApiKey()">🗑️ 設定済みキーを削除</button>
+    <label class="form-label">Apps Script のウェブアプリURL</label>
+    <input type="url" class="form-input" id="sheets-url-input"
+      placeholder="https://script.google.com/macros/s/..."
+      style="font-size:0.8rem;">
+
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="closeSheetsModal()">キャンセル</button>
+      <button class="btn btn-primary btn-sm" style="flex:2;" onclick="saveSheetsUrl()">💾 保存して送信</button>
+    </div>
+    <div id="sheets-status" style="margin-top:10px;font-size:0.82rem;text-align:center;"></div>
+
+    <div id="sheets-clear-row" style="display:none;margin-top:8px;text-align:center;">
+      <button class="btn btn-ghost btn-sm" style="width:auto;color:var(--danger);" onclick="clearSheetsUrl()">🗑️ URL設定を削除</button>
     </div>
   </div>
 </div>
+
+<!-- トースト通知 -->
+<div id="toast" style="
+  position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1e293b;color:white;border-radius:12px;padding:12px 20px;
+  font-size:0.88rem;font-weight:600;white-space:nowrap;
+  opacity:0;transition:all 0.3s;pointer-events:none;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+"></div>
 
 <script>
 // ────────────────────────────────────────────
@@ -685,10 +666,6 @@ function handleImage(input) {
     currentImageBase64 = parts[1];
     const mediaType = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
 
-    // APIバナーは非表示（API不要）
-    document.getElementById('api-setup-banner').style.display = 'none';
-
-    // Googleレンズ＋カテゴリチップを表示
     await analyzeImage(currentImageBase64, mediaType, null);
   };
   reader.readAsDataURL(file);
@@ -746,75 +723,16 @@ function clearImage() {
   const area = document.getElementById('img-upload-area');
   const actions = document.getElementById('img-actions');
   const suggBox = document.getElementById('ai-suggestion-box');
-  const banner = document.getElementById('api-setup-banner');
   preview.classList.remove('show');
   placeholder.style.display = 'block';
   area.classList.remove('has-image');
   actions.style.display = 'none';
   suggBox.style.display = 'none';
-  banner.style.display = 'none';
   document.getElementById('img-input').value = '';
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
   currentImageBase64 = null;
 }
 
-// ────────────────────────────────────────────
-// APIキー管理
-// ────────────────────────────────────────────
-function openApiModal() {
-  const modal = document.getElementById('api-modal');
-  const input = document.getElementById('api-key-input');
-  const status = document.getElementById('api-key-status');
-  const clearRow = document.getElementById('api-key-clear-row');
-  const existing = localStorage.getItem('claude_api_key');
-
-  input.value = existing || '';
-  status.textContent = '';
-  clearRow.style.display = existing ? 'block' : 'none';
-  if (existing) status.innerHTML = '<span style="color:var(--success);">✅ APIキー設定済み</span>';
-
-  modal.classList.add('show');
-}
-
-function closeApiModal(e) {
-  if (!e || e.target === document.getElementById('api-modal')) {
-    document.getElementById('api-modal').classList.remove('show');
-  }
-}
-
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  const status = document.getElementById('api-key-status');
-
-  if (!key) { status.innerHTML = '<span style="color:var(--danger);">❌ キーを入力してください</span>'; return; }
-  if (!key.startsWith('sk-ant-')) { status.innerHTML = '<span style="color:var(--danger);">❌ 正しいAPIキーを入力してください（sk-ant-で始まります）</span>'; return; }
-
-  localStorage.setItem('claude_api_key', key);
-  status.innerHTML = '<span style="color:var(--success);">✅ 保存しました！</span>';
-  document.getElementById('api-key-clear-row').style.display = 'block';
-  document.getElementById('api-setup-banner').style.display = 'none';
-
-  setTimeout(() => document.getElementById('api-modal').classList.remove('show'), 1200);
-
-  // 画像が既にある場合は再解析
-  if (currentImageBase64) {
-    const mediaType = document.getElementById('img-preview').src.match(/data:(.*?);/)?.[1] || 'image/jpeg';
-    analyzeImage(currentImageBase64, mediaType, key);
-  }
-}
-
-function clearApiKey() {
-  if (!confirm('APIキーを削除しますか？')) return;
-  localStorage.removeItem('claude_api_key');
-  document.getElementById('api-key-input').value = '';
-  document.getElementById('api-key-status').innerHTML = '<span style="color:var(--text-sub);">削除しました</span>';
-  document.getElementById('api-key-clear-row').style.display = 'none';
-}
-
-function toggleApiKeyVisibility() {
-  const inp = document.getElementById('api-key-input');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
 
 // ────────────────────────────────────────────
 // 送料プルダウン
@@ -879,6 +797,13 @@ function renderResults(prices) {
   });
 
   const best = results.reduce((a, b) => a.profit > b.profit ? a : b, results[0]);
+
+  // 仕入れ確定ボタン用にグローバル保存
+  window._lastCalc = {
+    keyword: document.getElementById('keyword').value,
+    purchasePrice, shippingCost, totalCost, results
+  };
+
   let html = '';
 
   if (best && best.profit > 0) {
@@ -913,6 +838,9 @@ function renderResults(prices) {
         </div>
       </div>
       <div class="verdict-badge ${vc}">${vt}</div>
+      <button class="btn btn-sheet" onclick="addToInventory(${i})" style="margin-top:10px;">
+        📦 仕入れ確定・シートに追加
+      </button>
     </div>`;
   });
 
@@ -930,6 +858,123 @@ function renderResults(prices) {
 // ────────────────────────────────────────────
 // リセット
 // ────────────────────────────────────────────
+// ────────────────────────────────────────────
+// スプレッドシート連携
+// ────────────────────────────────────────────
+function addToInventory(idx) {
+  const calc = window._lastCalc;
+  if (!calc) return;
+  const r = calc.results[idx];
+  const payload = {
+    keyword:       calc.keyword,
+    purchasePrice: calc.purchasePrice,
+    shipping:      calc.shippingCost,
+    totalCost:     calc.totalCost,
+    platform:      r.name,
+    sellPrice:     r.sell,
+    fee:           r.fee,
+    profit:        r.profit,
+    margin:        r.margin.toFixed(1),
+  };
+  const url = localStorage.getItem('sheets_script_url');
+  if (!url) {
+    window._pendingInventory = payload;
+    openSheetsModal();
+    return;
+  }
+  sendToSheet(url, payload);
+}
+
+async function sendToSheet(url, payload) {
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    showToast('✅ スプレッドシートに追加しました！');
+  } catch(e) {
+    showToast('❌ 送信に失敗しました。URL設定を確認してください。');
+  }
+}
+
+function openSheetsModal() {
+  const existing = localStorage.getItem('sheets_script_url');
+  const inp = document.getElementById('sheets-url-input');
+  const status = document.getElementById('sheets-status');
+  const clearRow = document.getElementById('sheets-clear-row');
+  inp.value = existing || '';
+  status.textContent = '';
+  clearRow.style.display = existing ? 'block' : 'none';
+  document.getElementById('sheets-modal').classList.add('show');
+}
+
+function closeSheetsModal(e) {
+  if (!e || e.target === document.getElementById('sheets-modal')) {
+    document.getElementById('sheets-modal').classList.remove('show');
+    window._pendingInventory = null;
+  }
+}
+
+function saveSheetsUrl() {
+  const url = document.getElementById('sheets-url-input').value.trim();
+  const status = document.getElementById('sheets-status');
+  if (!url || !url.startsWith('https://script.google.com/')) {
+    status.innerHTML = '<span style="color:var(--danger);">❌ Apps ScriptのURLを正しく入力してください</span>';
+    return;
+  }
+  localStorage.setItem('sheets_script_url', url);
+  status.innerHTML = '<span style="color:var(--success);">✅ 保存しました</span>';
+  document.getElementById('sheets-clear-row').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('sheets-modal').classList.remove('show');
+    if (window._pendingInventory) {
+      sendToSheet(url, window._pendingInventory);
+      window._pendingInventory = null;
+    }
+  }, 800);
+}
+
+function clearSheetsUrl() {
+  if (!confirm('URL設定を削除しますか？')) return;
+  localStorage.removeItem('sheets_script_url');
+  document.getElementById('sheets-url-input').value = '';
+  document.getElementById('sheets-status').innerHTML = '<span style="color:var(--text-sub);">削除しました</span>';
+  document.getElementById('sheets-clear-row').style.display = 'none';
+}
+
+function copyScriptCode() {
+  const code = `function doPost(e) {
+  var s = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var d = JSON.parse(e.postData.contents);
+  s.appendRow([
+    Utilities.formatDate(new Date(),'Asia/Tokyo','yyyy/MM/dd HH:mm'),
+    d.keyword, d.purchasePrice, d.shipping, d.totalCost,
+    d.platform, d.sellPrice, d.fee, d.profit, d.margin+'%', '仕入れ済み'
+  ]);
+  return ContentService.createTextOutput('ok');
+}`;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ コピー済み';
+    setTimeout(() => btn.textContent = '📋 コピー', 2000);
+  }).catch(() => showToast('コピーに失敗しました'));
+}
+
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 3000);
+}
+
 function resetAll() {
   if (!confirm('入力内容をリセットしますか？')) return;
   ['keyword','purchase-price','price-mercari','price-yahoo','price-paypay'].forEach(id => document.getElementById(id).value = '');
@@ -981,9 +1026,6 @@ function fmt(n) { return Math.round(n).toLocaleString('ja-JP'); }
       currentImageBase64 = parts[1];
       const mediaType = (parts[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
 
-      // APIバナーは非表示（API不要）
-      const banner = document.getElementById('api-setup-banner');
-      if (banner) banner.style.display = 'none';
       await analyzeImage(currentImageBase64, mediaType, null);
     };
     reader.readAsDataURL(file);
