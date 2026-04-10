@@ -512,20 +512,36 @@
     </div>
 
     <div style="background:var(--primary-light);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;line-height:1.8;">
-      <b>① 追記したいGoogleスプレッドシートを開く</b><br>
-      既存のシートでOK。追記したいシートのタブを選んでおく<br><br>
+      <b>① 使いたいGoogleスプレッドシートを開く</b><br>
+      新規・既存どちらでもOK。どのタブが開いていても関係なし<br><br>
       <b>② Apps Scriptを開く</b><br>
       メニュー「拡張機能」→「Apps Script」<br><br>
-      <b>③ 以下のコードを貼り付けて保存</b>
+      <b>③ 以下のコードを貼り付けて保存</b><br>
+      <span style="color:var(--primary);font-weight:700;">「在庫管理」シートが自動で作られ、そこに必ず追記されます</span>
     </div>
 
     <div style="background:#1e293b;border-radius:10px;padding:12px;margin-bottom:12px;position:relative;">
       <pre style="color:#a5f3fc;font-size:0.7rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;margin:0;">function doPost(e) {
-  var s = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getActiveSheet();
+  var ss = SpreadsheetApp
+    .getActiveSpreadsheet();
+
+  // 「在庫管理」シートを固定で使用
+  // なければ自動作成＋ヘッダー設定
+  var sheet = ss.getSheetByName('在庫管理');
+  if (!sheet) {
+    sheet = ss.insertSheet('在庫管理');
+    var h = ['日時','商品名','仕入れ値',
+      '送料','原価計','出品先',
+      '想定売値','手数料','想定利益',
+      '利益率','ステータス'];
+    sheet.appendRow(h);
+    sheet.getRange(1,1,1,h.length)
+      .setFontWeight('bold')
+      .setBackground('#e8eaf6');
+  }
+
   var d = JSON.parse(e.postData.contents);
-  s.appendRow([
+  sheet.appendRow([
     Utilities.formatDate(
       new Date(),'Asia/Tokyo',
       'yyyy/MM/dd HH:mm'),
@@ -946,9 +962,16 @@ function clearSheetsUrl() {
 
 function copyScriptCode() {
   const code = `function doPost(e) {
-  var s = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('在庫管理');
+  if (!sheet) {
+    sheet = ss.insertSheet('在庫管理');
+    var h = ['日時','商品名','仕入れ値','送料','原価計','出品先','想定売値','手数料','想定利益','利益率','ステータス'];
+    sheet.appendRow(h);
+    sheet.getRange(1,1,1,h.length).setFontWeight('bold').setBackground('#e8eaf6');
+  }
   var d = JSON.parse(e.postData.contents);
-  s.appendRow([
+  sheet.appendRow([
     Utilities.formatDate(new Date(),'Asia/Tokyo','yyyy/MM/dd HH:mm'),
     d.keyword, d.purchasePrice, d.shipping, d.totalCost,
     d.platform, d.sellPrice, d.fee, d.profit, d.margin+'%', '仕入れ済み'
